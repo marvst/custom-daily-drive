@@ -1,6 +1,6 @@
 # Custom Daily Drive for Spotify
 
-Populate a custom "daily drive" playlist on Spotify with your favorite songs and podcasts.
+Creates a custom "daily drive" playlist on Spotify with your favorite songs and podcasts.
 
 ## Install
 
