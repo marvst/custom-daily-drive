@@ -11,5 +11,4 @@ ruby main.rb
 ## To-do
 
 1. Create playlist instead of expecting it already exists
-1. Add database to save users information e.g. favorite podcasts
-1. Create UI for managing playlist settings e.g. favorite podcasts
+1. Turn web into cli

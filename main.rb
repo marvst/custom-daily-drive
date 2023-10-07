@@ -2,6 +2,7 @@ require 'sinatra'
 require 'httparty'
 require 'base64'
 require 'dotenv'
+require 'yaml'
 
 Dotenv.load
 
@@ -26,17 +27,21 @@ def get_user_top_tracks(access_token)
 end
 
 def update_daily_drive_playlist(access_token, playlist_id, tracks, episodes)
-    sliced_tracks = tracks.each_slice(tracks.length / episodes.length).to_a
-
     tracks_and_episodes = []
-    
-    counter = 0
-    episodes.each do |episode|
-        tracks_and_episodes.push([episode] + sliced_tracks[counter])
 
-        counter += 1
-    end
+    if episodes.empty?
+        tracks_and_episodes = tracks
+    else
+        sliced_tracks = tracks.each_slice(tracks.length / episodes.length).to_a
     
+        counter = 0
+        episodes.each do |episode|
+            tracks_and_episodes.push([episode] + sliced_tracks[counter])
+    
+            counter += 1
+        end
+    end
+
     uris = tracks_and_episodes.flatten.map { |item| item['uri'] }
 
     response = HTTParty.put(
@@ -111,41 +116,59 @@ def generate_access_tokens(code)
     response
 end
 
-get '/login' do
-    redirect "https://accounts.spotify.com/authorize?client_id=#{CLIENT_ID}&response_type=code&redirect_uri=#{CALLBACK_URI}&scope=user-top-read playlist-modify-private"
+get '/' do
+    erb :login
+end
+
+get '/auth' do
+    config = YAML.load_file('config.yml')
+
+    if config['refresh_token'].nil?
+        redirect "https://accounts.spotify.com/authorize?client_id=#{CLIENT_ID}&response_type=code&redirect_uri=#{CALLBACK_URI}&scope=user-top-read playlist-modify-private"
+    end
+
+    "You already authorized us :)"
 end
 
 get '/callback' do
     code = params['code']
+
+    if code.nil?
+        return "Authorization didn't work because we didn't receive your code back from Spotify :("
+    end
+
+    config = YAML.load_file('config.yml')
+
+    if !config['refresh_token'].nil?
+        return "You already authorize us :)"
+    end
+
     access_tokens = generate_access_tokens(code)
 
-    saved_users_information = JSON.parse(File.open('users_information.json').read)
-    saved_users_information.push({
+    new_config = {
         refresh_token: access_tokens['refresh_token'],
-        shows: [],
-        playlist: ''
-    })
+        shows: config['shows'],
+        playlist: config['playlist']
+    }
 
-    File.open('users_information.json', 'w') { |file| file.write(JSON.generate(saved_users_information)) }
+    File.open('config.yml', 'w') { |file| file.write(new_config.to_yaml) }
 
     "Done"
 end
 
-get '/' do
-    saved_users_information = JSON.parse(File.open('users_information.json').read)
+get '/generate' do
+    config = YAML.load_file('config.yml')
 
-    saved_users_information.each do |user|
-        access_token = generate_access_token_from_refresh_token(user['refresh_token'])
+    access_token = generate_access_token_from_refresh_token(config['refresh_token'])
 
-        tracks = get_user_top_tracks(access_token)
-        todays_episodes = get_last_episodes_from_user_shows(access_token, user['shows']).select { |show| show['release_date'] == Date.today.strftime('%Y-%m-%d') }
+    tracks = get_user_top_tracks(access_token)
+    todays_episodes = get_last_episodes_from_user_shows(access_token, config['shows']).select { |show| show['release_date'] == Date.today.strftime('%Y-%m-%d') }
 
-        updated = update_daily_drive_playlist(access_token, user['playlist'], tracks, todays_episodes)
+    updated = update_daily_drive_playlist(access_token, config['playlist'], tracks, todays_episodes)
 
-        if updated
-            return "All good :)" 
-        else
-            return "No good :("
-        end
+    if updated
+        return "All good :)" 
+    else
+        return "No good :("
     end
 end
