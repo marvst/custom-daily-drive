@@ -116,10 +116,6 @@ def generate_access_tokens(code)
     response
 end
 
-get '/' do
-    erb :login
-end
-
 get '/auth' do
     config = YAML.load_file('config.yml')
 
