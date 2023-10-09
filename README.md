@@ -12,3 +12,4 @@ ruby main.rb
 
 1. Create playlist instead of expecting it already exists
 1. Turn web into cli
+1. Consider released today when released on weekends

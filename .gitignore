@@ -1,4 +1,4 @@
 .vscode/
-*.yml
+config.yml
 .env
 Gemfile.lock

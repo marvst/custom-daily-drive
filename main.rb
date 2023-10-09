@@ -159,12 +159,17 @@ end
 get '/generate' do
     config = YAML.load_file('config.yml')
 
-    access_token = generate_access_token_from_refresh_token(config['refresh_token'])
+    access_token = generate_access_token_from_refresh_token(config[:refresh_token])
 
     tracks = get_user_top_tracks(access_token)
-    todays_episodes = get_last_episodes_from_user_shows(access_token, config['shows']).select { |show| show['release_date'] == Date.today.strftime('%Y-%m-%d') }
+    todays_episodes = get_last_episodes_from_user_shows(access_token, config[:shows]).select do |episode|
+        release_date =  Date.parse(episode['release_date'])
 
-    updated = update_daily_drive_playlist(access_token, config['playlist'], tracks, todays_episodes)
+        release_date == Date.today ||
+        [0, 6].include?(release_date.wday)
+    end
+
+    updated = update_daily_drive_playlist(access_token, config[:playlist], tracks, todays_episodes)
 
     if updated
         return "All good :)" 
