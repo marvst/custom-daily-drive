@@ -4,6 +4,12 @@ require 'base64'
 require 'dotenv'
 require 'yaml'
 
+# TODO
+# 1. Create migrations and integrate https://cloud.google.com/ruby/docs/reference/google-cloud-firestore/latest/AUTHENTICATION
+# 2. Start saving to the database on /callback https://cloud.google.com/ruby/docs/reference/google-cloud-firestore/latest#adding-data
+# 3. Start reading from the database on /generate https://cloud.google.com/ruby/docs/reference/google-cloud-firestore/latest#retrieving-collection-references
+# 4. Make /generate to run for each entry (loop)
+
 Dotenv.load
 
 CLIENT_ID = ENV["CLIENT_ID"]
@@ -162,7 +168,7 @@ get '/generate' do
         release_date =  Date.parse(episode['release_date'])
 
         release_date == Date.today ||
-        [0, 6].include?(release_date.wday)
+        [0, 6].include?(release_date.wday) && Date.today.wday == 1
     end
 
     updated = update_daily_drive_playlist(access_token, config[:playlist], tracks, todays_episodes)
